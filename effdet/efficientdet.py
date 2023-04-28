@@ -21,6 +21,7 @@ try:
 except ImportError:
     from timm.models.layers import create_conv2d, create_pool2d, get_act_layer
 from .anchors import get_feat_sizes
+from gate import get_TGNetwork
 from .config import get_fpn_config, set_config_writeable, set_config_readonly
 
 _DEBUG = False
@@ -671,6 +672,7 @@ class EfficientDet(nn.Module):
         self.config['num_classes'] = 1
 
         set_config_readonly(self.config)
+        self.gate=get_TGNetwork()
         self.backbone = create_model(
             config.backbone_name,
             features_only=True,
@@ -783,6 +785,7 @@ class EfficientDet(nn.Module):
         return x
     
     def forward_backbone(self, x, decision=None):
+        output=[]
         x = self.backbone.conv1(x)
         x = self.backbone.bn1(x)
         x = self.backbone.act1(x)
@@ -798,18 +801,22 @@ class EfficientDet(nn.Module):
             # x = layer(x, decision[:, gate_num:gate_num + 3, :])
             x = self.forward_bottleneck(layer, x, decision[:, gate_num:gate_num + 3, :])
             gate_num += 3
+        output.append(x)
 
         for layer in self.backbone.layer3:
             # x = layer(x, decision[:, gate_num:gate_num + 3, :])
             x = self.forward_bottleneck(layer, x, decision[:, gate_num:gate_num + 3, :])
             gate_num += 3
-
+        output.append(x)
         for layer in self.backbone.layer4:
             # x = layer(x, decision[:, gate_num:gate_num + 3, :])
             x = self.forward_bottleneck(layer, x, decision[:, gate_num:gate_num + 3, :])
             gate_num += 3
+        output.append(x)
+        return output
 
-    def forward(self, x, decision=None):
+    def forward(self, x, prompt=None):
+        decision=self.gate(prompt)
         # x = self.backbone(x)
         x = self.forward_backbone(x, decision)
         x = self.fpn(x)
