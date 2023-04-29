@@ -21,7 +21,7 @@ try:
 except ImportError:
     from timm.models.layers import create_conv2d, create_pool2d, get_act_layer
 from .anchors import get_feat_sizes
-from gate import get_TGNetwork
+from .gate import get_TGNetwork
 from .config import get_fpn_config, set_config_writeable, set_config_readonly
 
 _DEBUG = False
@@ -684,7 +684,7 @@ class EfficientDet(nn.Module):
         self.fpn = BiFpn(self.config, feature_info)
         self.class_net = HeadNet(self.config, num_outputs=self.config.num_classes)
         self.box_net = HeadNet(self.config, num_outputs=4)
-        import pdb;pdb.set_trace()
+        # import pdb;pdb.set_trace()
         for n, m in self.named_modules():
             if 'backbone' not in n:
                 if alternate_init:

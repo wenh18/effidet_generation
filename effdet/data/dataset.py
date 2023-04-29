@@ -66,7 +66,7 @@ class DetectionDatset(data.Dataset):
 
         mask=[task[0],self.cat_id_to_label[task[1]]]
 
-        prompt=torch.zeros(91).scatter_(0, torch.tensor(mask), 1)
+        prompt=torch.zeros(91).scatter_(0, torch.tensor(mask), 1).numpy()
 
         return img, target, prompt
 

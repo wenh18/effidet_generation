@@ -124,24 +124,27 @@ class PrefetchLoader:
         stream = torch.cuda.Stream()
         first = True
 
-        for next_input, next_target in self.loader:
+        for next_input, next_target,next_prompt in self.loader:
             with torch.cuda.stream(stream):
                 next_input = next_input.cuda(non_blocking=True)
+                next_prompt = next_prompt.cuda(non_blocking=True)
+                next_prompt=next_prompt.float()
                 next_input = next_input.float().sub_(self.mean).div_(self.std)
                 next_target = {k: v.cuda(non_blocking=True) for k, v in next_target.items()}
                 if self.random_erasing is not None:
                     next_input = self.random_erasing(next_input, next_target)
 
             if not first:
-                yield input, target
+                yield input, target,prompt
             else:
                 first = False
 
             torch.cuda.current_stream().wait_stream(stream)
             input = next_input
             target = next_target
+            prompt=next_prompt
 
-        yield input, target
+        yield input, target, prompt
 
     def __len__(self):
         return len(self.loader)

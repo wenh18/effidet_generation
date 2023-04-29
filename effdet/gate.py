@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-def get_TGNetwork( d_model=100, gate_len=34, select_embbed_len=128, kernel_number=512):
+def get_TGNetwork(d_model=91, gate_len=48, select_embbed_len=128, kernel_number=2048):
     model = TGNetwork(d_model, gate_len, select_embbed_len, kernel_number, )
     return model
 
@@ -53,11 +53,11 @@ class TGNetwork(nn.Module):
 
     def forward(self, prompt, ):
         # prompt:[batchsize,prompt_len]
+        
 
-        task_cls = prompt
 
 
-        layer_encoding = self.TaskLinear(task_cls)
+        layer_encoding = self.TaskLinear(prompt)
 
         layer_encoding = layer_encoding.view(-1, self.gate_len, self.select_embed_len)
 

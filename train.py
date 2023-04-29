@@ -311,7 +311,7 @@ def main():
         )
     model_config = model.config  # grab before we obscure with DP/DDP wrappers
 
-    import pdb;pdb.set_trace()
+    # import pdb;pdb.set_trace()
 
     if args.local_rank == 0:
         logging.info('Model %s created, param count: %d' % (args.model, sum([m.numel() for m in model.parameters()])))
@@ -407,13 +407,13 @@ def main():
 
     loader_train, loader_eval, evaluator = create_datasets_and_loaders(args, model_config)
 
-    if model_config.num_classes < loader_train.dataset.parser.max_label:
-        logging.error(
-            f'Model {model_config.num_classes} has fewer classes than dataset {loader_train.dataset.parser.max_label}.')
-        exit(1)
-    if model_config.num_classes > loader_train.dataset.parser.max_label:
-        logging.warning(
-            f'Model {model_config.num_classes} has more classes than dataset {loader_train.dataset.parser.max_label}.')
+    # if model_config.num_classes < loader_train.dataset.parser.max_label:
+    #     logging.error(
+    #         f'Model {model_config.num_classes} has fewer classes than dataset {loader_train.dataset.parser.max_label}.')
+    #     exit(1)
+    # if model_config.num_classes > loader_train.dataset.parser.max_label:
+    #     logging.warning(
+    #         f'Model {model_config.num_classes} has more classes than dataset {loader_train.dataset.parser.max_label}.')
 
     eval_metric = args.eval_metric
     best_metric = None
