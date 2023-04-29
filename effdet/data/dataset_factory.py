@@ -36,6 +36,8 @@ def create_dataset(name, root, splits=('train', 'val')):
             datasets[s] = dataset_cls(
                 data_dir=root / Path(split_cfg['img_dir']),
                 parser=create_parser(dataset_cfg.parser, cfg=parser_cfg),
+                split=s,
+                data_root=root
             )
     elif name.startswith('voc'):
         if 'voc0712' in name:
@@ -70,7 +72,6 @@ def create_dataset(name, root, splits=('train', 'val')):
                 )
                 parser = create_parser(dataset_cfg.parser, cfg=parser_cfg)
             datasets[s] = dataset_cls(data_dir=root, parser=parser)
-    elif name.startswith('openimages'):
         if 'challenge2019' in name:
             dataset_cfg = OpenImagesObjChallenge2019Cfg()
         else:

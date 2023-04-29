@@ -153,8 +153,8 @@ class DetBenchTrain(nn.Module):
             )
         self.loss_fn = DetectionLoss(model.config)
 
-    def forward(self, x, target: Dict[str, torch.Tensor]):
-        class_out, box_out = self.model(x)
+    def forward(self, x, target: Dict[str, torch.Tensor],prompt):
+        class_out, box_out = self.model(x,prompt)
         if self.anchor_labeler is None:
             # target should contain pre-computed anchor labels if labeler not present in bench
             assert 'label_num_positives' in target

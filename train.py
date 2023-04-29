@@ -595,7 +595,7 @@ def train_epoch(
     end = time.time()
     last_idx = len(loader) - 1
     num_updates = epoch * len(loader)
-    for batch_idx, (input, target) in enumerate(loader):
+    for batch_idx, (input, target,prompt) in enumerate(loader):
         last_batch = batch_idx == last_idx
         data_time_m.update(time.time() - end)
 
@@ -603,7 +603,7 @@ def train_epoch(
             input = input.contiguous(memory_format=torch.channels_last)
 
         with amp_autocast():
-            output = model(input, target)
+            output = model(input, target,prompt)
         loss = output['loss']
 
         if not args.distributed:
@@ -682,10 +682,10 @@ def validate(model, loader, args, evaluator=None, log_suffix=''):
     end = time.time()
     last_idx = len(loader) - 1
     with torch.no_grad():
-        for batch_idx, (input, target) in enumerate(loader):
+        for batch_idx, (input, target,prompt) in enumerate(loader):
             last_batch = batch_idx == last_idx
 
-            output = model(input, target)
+            output = model(input, target,prompt)
             loss = output['loss']
 
             if evaluator is not None:

@@ -23,9 +23,9 @@ class CocoParser(Parser):
         self.coco = None
         self._load_annotations(cfg.ann_filename)
 
-    def get_ann_info(self, idx):
+    def get_ann_info(self, idx,task):
         img_id = self.img_ids[idx]
-        return self._parse_img_ann(img_id)
+        return self._parse_img_ann(img_id,task)
 
     def _load_annotations(self, ann_file):
         assert self.coco is None
@@ -44,7 +44,7 @@ class CocoParser(Parser):
             self.img_ids.append(img_id)
             self.img_infos.append(info)
 
-    def _parse_img_ann(self, img_id):
+    def _parse_img_ann(self, img_id,task):
         ann_ids = self.coco.getAnnIds(imgIds=[img_id])
         ann_info = self.coco.loadAnns(ann_ids)
         bboxes = []
@@ -52,6 +52,8 @@ class CocoParser(Parser):
         cls = []
 
         for i, ann in enumerate(ann_info):
+            if ann['category_id']!= task[1] or ann['color']!=task[0]:
+                continue
             if ann.get('ignore', False):
                 continue
             x1, y1, w, h = ann['bbox']
@@ -70,7 +72,7 @@ class CocoParser(Parser):
                     bboxes_ignore.append(bbox)
             else:
                 bboxes.append(bbox)
-                cls.append(self.cat_id_to_label[ann['category_id']] if self.cat_id_to_label else ann['category_id'])
+                cls.append(0)
 
         if bboxes:
             bboxes = np.array(bboxes, ndmin=2, dtype=np.float32)

@@ -2,10 +2,13 @@
 
 Hacked together by Ross Wightman
 """
+import random
+import os
 import torch.utils.data as data
 import numpy as np
-
+import json
 from PIL import Image
+import torch
 from .parsers import create_parser
 
 
@@ -18,15 +21,26 @@ class DetectionDatset(data.Dataset):
 
     """
 
-    def __init__(self, data_dir, parser=None, parser_kwargs=None, transform=None):
+    def __init__(self, data_dir, parser=None, parser_kwargs=None, transform=None,split=None,data_root=None):
         super(DetectionDatset, self).__init__()
         parser_kwargs = parser_kwargs or {}
         self.data_dir = data_dir
+
+        self.task_dir=os.path.join(data_root,'task.json')
+        with open(self.task_dir, 'r') as f:
+            task_json = json.load(f)
+
+        self.task=task_json[split]
+
+
         if isinstance(parser, str):
             self._parser = create_parser(parser, **parser_kwargs)
         else:
             assert parser is not None and len(parser.img_ids)
             self._parser = parser
+
+        self.cat_id_to_label = {cat_id: i+11  for i, cat_id in enumerate(self._parser.cat_ids)}
+
         self._transform = transform
 
     def __getitem__(self, index):
@@ -38,8 +52,11 @@ class DetectionDatset(data.Dataset):
         """
         img_info = self._parser.img_infos[index]
         target = dict(img_idx=index, img_size=(img_info['width'], img_info['height']))
+        #here choose a task
+        task=random.choice(self.task)
+
         if self._parser.has_labels:
-            ann = self._parser.get_ann_info(index)
+            ann = self._parser.get_ann_info(index,task)
             target.update(ann)
 
         img_path = self.data_dir / img_info['file_name']
@@ -47,7 +64,11 @@ class DetectionDatset(data.Dataset):
         if self.transform is not None:
             img, target = self.transform(img, target)
 
-        return img, target
+        mask=[task[0],self.cat_id_to_label[task[1]]]
+
+        prompt=torch.zeros(91).scatter_(0, torch.tensor(mask), 1)
+
+        return img, target, prompt
 
     def __len__(self):
         return len(self._parser.img_ids)

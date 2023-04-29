@@ -40,8 +40,10 @@ class DetectionFastCollate:
         target = dict()
         labeler_outputs = dict()
         img_tensor = torch.zeros((batch_size, *batch[0][0].shape), dtype=torch.uint8)
+        prompt_tensor = torch.zeros((batch_size, *batch[0][2].shape), dtype=torch.uint8)
         for i in range(batch_size):
             img_tensor[i] += torch.from_numpy(batch[i][0])
+            prompt_tensor[i] += batch[i][2]
             labeler_inputs = {}
             for tk, tv in batch[i][1].items():
                 instance_info = self.instance_info.get(tk, None)
@@ -97,7 +99,7 @@ class DetectionFastCollate:
         if labeler_outputs:
             target.update(labeler_outputs)
 
-        return img_tensor, target
+        return img_tensor, target, prompt_tensor
 
 
 class PrefetchLoader:
