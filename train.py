@@ -676,44 +676,56 @@ def train_epoch(
 def validate(model, loader, args, evaluator=None, log_suffix=''):
     batch_time_m = utils.AverageMeter()
     losses_m = utils.AverageMeter()
+    losses_t=utils.AverageMeter()
+    maps_m=utils.AverageMeter()
+
+
 
     model.eval()
 
     end = time.time()
     last_idx = len(loader) - 1
-    with torch.no_grad():
-        for batch_idx, (input, target,prompt) in enumerate(loader):
-            last_batch = batch_idx == last_idx
+    for task in loader.dataset.task :
+        test_num=0
+        loader.dataset.prompt=task
+        with torch.no_grad():
+            for batch_idx, (input, target,prompt) in enumerate(loader):
+                last_batch = batch_idx == last_idx
 
-            output = model(input, target,prompt)
-            loss = output['loss']
+                output = model(input, target,prompt)
+                loss = output['loss']
 
-            if evaluator is not None:
-                evaluator.add_predictions(output['detections'], target)
+                if evaluator is not None:
+                    evaluator.add_predictions(output['detections'], target)
 
-            if args.distributed:
-                reduced_loss = utils.reduce_tensor(loss.data, args.world_size)
-            else:
-                reduced_loss = loss.data
+                if args.distributed:
+                    reduced_loss = utils.reduce_tensor(loss.data, args.world_size)
+                else:
+                    reduced_loss = loss.data
 
-            torch.cuda.synchronize()
+                torch.cuda.synchronize()
 
-            losses_m.update(reduced_loss.item(), input.size(0))
+                losses_m.update(reduced_loss.item(), input.size(0))
 
-            batch_time_m.update(time.time() - end)
-            end = time.time()
-            if args.local_rank == 0 and (last_batch or batch_idx % args.log_interval == 0):
-                log_name = 'Test' + log_suffix
-                logging.info(
-                    f'{log_name}: [{batch_idx:>4d}/{last_idx}]  '
-                    f'Time: {batch_time_m.val:.3f} ({batch_time_m.avg:.3f})  '
-                    f'Loss: {losses_m.val:>7.4f} ({losses_m.avg:>6.4f}) '
-                )
+                batch_time_m.update(time.time() - end)
+                end = time.time()
+                if args.local_rank == 0 and (last_batch or batch_idx % args.log_interval == 0):
+                    log_name = 'Test' + log_suffix + str(test_num)
+                    logging.info(
+                        f'{log_name}: [{batch_idx:>4d}/{last_idx}]  '
+                        f'Time: {batch_time_m.val:.3f} ({batch_time_m.avg:.3f})  '
+                        f'Loss: {losses_m.val:>7.4f} ({losses_m.avg:>6.4f}) '
+                    )
+            losses_t.update(losses_m.avg)
+            test_num+=1
 
-    metrics = OrderedDict([('loss', losses_m.avg)])
-    if evaluator is not None:
-        metrics['map'] = evaluator.evaluate()
 
+        #metrics = OrderedDict([('loss', losses_m.avg)])
+        if evaluator is not None:
+            maps_m.update(evaluator.evaluate(task=task))
+            #metrics['map'] = evaluator.evaluate(task=task)
+    metrics = OrderedDict([('loss', losses_t.avg)])
+    metrics['map']=maps_m.avg
     return metrics
 
 

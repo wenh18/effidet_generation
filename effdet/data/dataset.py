@@ -26,12 +26,16 @@ class DetectionDatset(data.Dataset):
         parser_kwargs = parser_kwargs or {}
         self.data_dir = data_dir
 
+
         self.task_dir=os.path.join(data_root,'task.json')
         with open(self.task_dir, 'r') as f:
             task_json = json.load(f)
 
+        self.split=split
+
         self.task=task_json[split]
 
+        self.prompt=None
 
         if isinstance(parser, str):
             self._parser = create_parser(parser, **parser_kwargs)
@@ -53,7 +57,10 @@ class DetectionDatset(data.Dataset):
         img_info = self._parser.img_infos[index]
         target = dict(img_idx=index, img_size=(img_info['width'], img_info['height']))
         #here choose a task
-        task=random.choice(self.task)
+        if self.split=='train':
+            task=random.choice(self.task)
+        elif self.split=='val':
+            task=self.prompt
 
         if self._parser.has_labels:
             ann = self._parser.get_ann_info(index,task)

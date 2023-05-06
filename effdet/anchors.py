@@ -383,7 +383,8 @@ class AnchorLabeler(object):
             cls_targets, box_targets, matches = self.target_assigner.assign(anchor_box_list, gt_box_list, gt_class_i)
 
             # class labels start from 1 and the background class = -1
-            cls_targets = (cls_targets - 1).long()
+            #这里应该不需要减1，因为gt_class_i都被设成了0
+            cls_targets = cls_targets.long()
 
             # Unpack labels.
             """Unpacks an array of cls/box into multiple scales."""

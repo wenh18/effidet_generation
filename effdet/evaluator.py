@@ -9,7 +9,9 @@ import numpy as np
 import torch
 import torch.distributed as dist
 
-from pycocotools.cocoeval import COCOeval
+from .prompt_evaluator import COCOeval
+
+#from pycocotools.cocoeval import COCOeval
 from .distributed import synchronize, is_main_process, all_gather_container
 
 # FIXME experimenting with speedups for OpenImages eval, it's slow
@@ -51,7 +53,7 @@ class Evaluator:
             self.img_indices.append(img_idx)
             self.predictions.append(img_dets)
 
-    def _coco_predictions(self):
+    def _coco_predictions(self,task):
         # generate coco-style predictions
         coco_predictions = []
         coco_ids = []
@@ -72,7 +74,7 @@ class Evaluator:
                     image_id=int(img_id),
                     bbox=det[0:4].tolist(),
                     score=score,
-                    category_id=int(det[5]))
+                    category_id=int(task[1]))
                 coco_predictions.append(coco_det)
         return coco_predictions, coco_ids
 
@@ -99,10 +101,10 @@ class CocoEvaluator(Evaluator):
         self.img_indices = []
         self.predictions = []
 
-    def evaluate(self, output_result_file=''):
+    def evaluate(self, output_result_file='',task=None):
         if not self.distributed or dist.get_rank() == 0:
             assert len(self.predictions)
-            coco_predictions, coco_ids = self._coco_predictions()
+            coco_predictions, coco_ids = self._coco_predictions(task)
             if output_result_file:
                 json.dump(coco_predictions, open(output_result_file, 'w'), indent=4)
                 results = self.coco_api.loadRes(output_result_file)
@@ -115,8 +117,9 @@ class CocoEvaluator(Evaluator):
                 except OSError:
                     pass
             coco_eval = COCOeval(self.coco_api, results, 'bbox')
-            coco_eval.params.imgIds = coco_ids  # score only ids we've used
-            coco_eval.evaluate()
+            coco_eval.params.imgIds = coco_ids# score only ids we've used
+            coco_eval.params.catIds=task[1]
+            coco_eval.evaluate(task)
             coco_eval.accumulate()
             coco_eval.summarize()
             metric = coco_eval.stats[0]  # mAP 0.5-0.95
